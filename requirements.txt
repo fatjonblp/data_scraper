@@ -1,6 +1,8 @@
 requests
 beautifulsoup4
+lxml
 feedparser
-streamlit
 pandas
+fpdf
 plotly
+streamlit
