@@ -24,8 +24,10 @@ try:
         # Filter für Laufzeit
         laufzeiten = df['laufzeit'].unique()
         auswahl = st.multiselect("Laufzeiten auswählen", laufzeiten, default=laufzeiten)
+        typen = df['typ'].unique()
+        typ_auswahl = st.radio("Zinstyp wählen", typen)
 
-        filtered_df = df[df['laufzeit'].isin(auswahl)]
+        filtered_df = df[(df['laufzeit'].isin(auswahl)) & (df['typ'] == typ_auswahl)]
 
         # Chart erstellen
         fig = px.line(filtered_df, x='datum', y='zinssatz', color='laufzeit',
