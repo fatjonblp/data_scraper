@@ -7,7 +7,15 @@ from email.mime.base import MIMEBase
 from email import encoders
 import os
 import ssl
+from email.mime.text import MIMEText
 from datetime import datetime
+
+def get_aktueller_saron():
+    conn = sqlite3.connect('hypotheken.db')
+    today_str = datetime.now().strftime('%Y-%m-%d')
+    df = pd.read_sql_query(f"SELECT * FROM zinsen WHERE datum = '{today_str}' AND laufzeit = 'SARON' ORDER BY zinssatz DESC LIMIT 1", conn)
+    conn.close()
+    return df['zinssatz'].values[0]
 
 def create_pdf():
     conn = sqlite3.connect('hypotheken.db')
@@ -39,7 +47,7 @@ def create_pdf():
     
     pdf.output("report.pdf")
 
-def send_email():
+def send_email(aktueller_saron):
     # Diese Werte legst du in GitHub Secrets fest!
     from_email = os.environ.get("EMAIL_SENDER")
     to_email = os.environ.get("EMAIL_RECEIVER")
@@ -51,8 +59,22 @@ def send_email():
     msg = MIMEMultipart()
     msg['From'] = from_email
     msg['To'] = to_email
-    msg['Subject'] = f"Zins-Report vom {datetime.now().strftime('%d.%m.%Y')}"
+    msg['Subject'] = f"📊 Zins-Report vom {datetime.now().strftime('%d.%m.%Y')}"
+    # Der dynamische Textkörper
+    body = f"""
+Hallo!
 
+Hier ist dein aktueller Zins-Report. 
+
+📈 Aktueller SARON: {aktueller_saron}%
+📅 Stand: {datetime.now().strftime('%d.%m.%Y')}
+
+Im Anhang findest du die detaillierte PDF-Analyse mit dem Verlauf der Migros Bank Festhypotheken.
+
+Beste Grüße,
+Dein Python-Bot
+    """
+    msg.attach(MIMEText(body, 'plain'))
     with open("report.pdf", "rb") as f:
         part = MIMEBase("application", "octet-stream")
         part.set_payload(f.read())
@@ -70,5 +92,6 @@ def send_email():
         print(f"Kritischer Fehler beim Versand: {e}")
 
 if __name__ == "__main__":
+    aktueller_saron = get_aktueller_saron()
     create_pdf()
-    send_email()
+    send_email(aktueller_saron)
