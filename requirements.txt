@@ -6,3 +6,4 @@ pandas
 fpdf
 plotly
 streamlit
+altair<5
