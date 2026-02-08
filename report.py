@@ -101,6 +101,8 @@ Hier ist dein aktueller Zins-Report.
 📅 Stand: {datetime.now().strftime('%d.%m.%Y')}
 
 Im Anhang findest du die detaillierte PDF-Analyse mit dem Verlauf der Migros Bank Festhypotheken.
+Für interaktive Charts und den vollständigen historischen Verlauf besuche die Web-App:
+🔗 https://cxda4fakhsx24ptyrzcdcu.streamlit.app/
 
 Beste Grüße,
 Dein Python-Bot
