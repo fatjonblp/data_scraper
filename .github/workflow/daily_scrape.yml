@@ -1,0 +1,32 @@
+name: Daily Mortgage Scrape
+
+on:
+  schedule:
+    - cron: "0 8 * * *" # Täglich um 08:00 UTC
+  workflow_dispatch: # Erlaubt es dir, den Scraper manuell per Klick zu starten
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Scraper
+        run: python scraper.py
+
+      - name: Commit and Push changes
+        run: |
+          git config --global user.name "Scraper Bot"
+          git config --global user.email "bot@github.com"
+          git add hypotheken.db
+          git commit -m "Daten-Update: $(date)" || echo "Keine Änderungen zum Committen"
+          git push
