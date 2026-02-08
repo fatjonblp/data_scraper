@@ -28,17 +28,19 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          # 1. Änderungen vormerken
+          # 1. Die geänderte Datenbank-Datei sicherheitspflichtig vormerken
           git add hypotheken.db
 
-          # 2. Nur weitermachen, wenn sich die DB wirklich geändert hat
-          git diff --quiet && git diff --staged --quiet || (
-            # 3. Den neuesten Stand vom Server holen und lokale Änderungen oben drauf setzen
-            git pull --rebase origin main
-            
-            # 4. Committen
-            git commit -m "Automatisches Zins-Update: $(date +'%Y-%m-%d')"
-            
-            # 5. Pushen (mit Retry-Logik)
-            git push origin main
-          )
+          # 2. Die Änderungen kurz "einfrieren" (Stash)
+          git stash
+
+          # 3. Den neuesten Stand vom Server holen (deinen Code)
+          git pull --rebase origin main
+
+          # 4. Die Datenbank-Änderungen wieder zurückholen
+          git stash pop || echo "Kein Stash zum Zurückholen"
+
+          # 5. Alles committen und pushen
+          git add hypotheken.db
+          git commit -m "Automatisches Zins-Update: $(date +'%Y-%m-%d')" || echo "Keine Änderungen"
+          git push origin main
