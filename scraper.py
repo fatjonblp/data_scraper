@@ -7,9 +7,12 @@ from datetime import datetime
 def init_db():
     conn = sqlite3.connect('hypotheken.db')
     c = conn.cursor()
-    # Wir fügen eine Spalte 'typ' hinzu, um zwischen Online-Zins und Standard-Zins zu unterscheiden
     c.execute('''CREATE TABLE IF NOT EXISTS zinsen 
                  (datum TEXT, laufzeit TEXT, zinssatz REAL, typ TEXT)''')
+    
+    # Erstellt einen Index, der Duplikate verhindert
+    c.execute('''CREATE UNIQUE INDEX IF NOT EXISTS idx_datum_laufzeit_typ 
+                 ON zinsen (datum, laufzeit, typ)''')
     conn.commit()
     conn.close()
 
@@ -53,10 +56,15 @@ def scrape_migros_bank():
 def save_to_db(data):
     conn = sqlite3.connect('hypotheken.db')
     c = conn.cursor()
-    # Wir speichern nun 4 Werte (datum, laufzeit, zinssatz, typ)
-    c.executemany('INSERT INTO zinsen VALUES (?,?,?,?)', data)
+    
+    # "REPLACE" sorgt dafür, dass bei einem Konflikt (gleiches Datum/Laufzeit/Typ) 
+    # der bestehende Eintrag aktualisiert wird.
+    c.executemany('''INSERT OR REPLACE INTO zinsen (datum, laufzeit, zinssatz, typ) 
+                     VALUES (?, ?, ?, ?)''', data)
+    
     conn.commit()
     conn.close()
+    print(f"{len(data)} Einträge verarbeitet (Updates/Inserts).")
 
 def scrape_saron():
     rss_url = "https://www.snb.ch/public/en/rss/interestRates"
