@@ -40,7 +40,7 @@ def scrape_migros_bank():
                             try:
                                 zins_val = float(zins_raw)
                                 # Typ-Zuweisung: Oft ist die erste Spalte Online, die zweite Standard
-                                typ = "Online" if i == 1 else "Standard"
+                                typ = "Vorzugszinssatz" if i == 1 else "Standard"
                                 results.append((heute, text_laufzeit, zins_val, typ))
                             except ValueError:
                                 continue
