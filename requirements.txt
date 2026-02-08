@@ -1,9 +1,9 @@
+streamlit
+altair<5
+pandas
+plotly
 requests
 beautifulsoup4
 lxml
 feedparser
-pandas
-fpdf
-plotly
-streamlit
-altair<5
+fpdf2
