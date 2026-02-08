@@ -6,6 +6,8 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
 import os
+import ssl
+from datetime import datetime
 
 def create_pdf():
     conn = sqlite3.connect('hypotheken.db')
@@ -40,13 +42,13 @@ def send_email():
     to_email = os.environ.get("EMAIL_RECEIVER")
     api_key = str(os.environ.get("EMAIL_PASSWORD", "")).strip() 
     smtp_server = "smtp.sendgrid.net" # Beispiel mit SendGrid
-    smtp_port = 587
+    smtp_port = 465
     username = "apikey"
 
     msg = MIMEMultipart()
     msg['From'] = from_email
     msg['To'] = to_email
-    msg['Subject'] = "Dein wöchentlicher Zins-Report"
+    msg['Subject'] = f"Zins-Report vom {datetime.now().strftime('%d.%m.%Y')}"
 
     with open("report.pdf", "rb") as f:
         part = MIMEBase("application", "octet-stream")
@@ -54,12 +56,15 @@ def send_email():
         encoders.encode_base64(part)
         part.add_header("Content-Disposition", f"attachment; filename=zins_report.pdf")
         msg.attach(part)
-
-    server = smtplib.SMTP(smtp_server, smtp_port)
-    server.starttls()
-    server.login(username, api_key)
-    server.send_message(msg)
-    server.quit()
+    context = ssl.create_default_context()
+    try:
+        # Nutzung von SMTP_SSL für Port 465
+        with smtplib.SMTP_SSL(smtp_server, smtp_port, context=context) as server:
+            server.login(username, api_key)
+            server.send_message(msg)
+            print("E-Mail erfolgreich versendet!")
+    except Exception as e:
+        print(f"Kritischer Fehler beim Versand: {e}")
 
 if __name__ == "__main__":
     create_pdf()
