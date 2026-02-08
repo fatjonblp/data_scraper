@@ -29,11 +29,13 @@ def create_pdf():
     pdf.cell(40, 10, "Datum", 1, 0, 'C', True)
     pdf.cell(60, 10, "Modell", 1, 0, 'C', True)
     pdf.cell(40, 10, "Zinssatz", 1, 1, 'C', True)
+    pdf.cell(40, 10, "Typ", 1, 1, 'C', True)
 
     for i, row in df.iterrows():
         pdf.cell(40, 10, str(row['datum']), 1)
         pdf.cell(60, 10, str(row['laufzeit']), 1)
         pdf.cell(40, 10, f"{row['zinssatz']}%", 1, 1)
+        pdf.cell(40, 10, str(row['typ']), 1, 1)
     
     pdf.output("report.pdf")
 
