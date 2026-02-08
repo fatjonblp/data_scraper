@@ -60,29 +60,45 @@ def save_to_db(data):
 
 def scrape_saron():
     rss_url = "https://www.snb.ch/public/en/rss/interestRates"
-    feed = feedparser.parse(rss_url)
+    # Wir nutzen requests, um den rohen XML-Inhalt zu holen, 
+    # da manche Feedparser Namespaces unterschiedlich handhaben
+    headers = {'User-Agent': 'Mozilla/5.0'}
     
-    results = []
-    heute = datetime.now().strftime('%Y-%m-%d')
-    
-    # Der RSS-Feed enthält verschiedene Zinssätze als "entries"
-    for entry in feed.entries:
-        title = entry.title.upper()
-        # Wir suchen gezielt nach dem Eintrag für den SARON
-        if "SARON" in title:
-            # Der Titel sieht meist so aus: "SARON: 1.05%"
-            try:
-                # Extrahiere den Zahlenwert aus dem Titel oder der Beschreibung
-                # Wir suchen nach dem Prozentzeichen und nehmen die Zahl davor
-                zins_raw = entry.title.split(':')[-1].replace('%', '').strip()
-                zins_val = float(zins_raw)
+    try:
+        response = requests.get(rss_url, headers=headers)
+        # BeautifulSoup kann XML hervorragend parsen, wenn man 'xml' oder 'lxml-xml' nutzt
+        soup = BeautifulSoup(response.content, 'xml')
+        
+        heute = datetime.now().strftime('%Y-%m-%d')
+        
+        # Wir suchen alle <item> Blöcke
+        items = soup.find_all('item')
+        
+        for item in items:
+            title = item.find('title').get_text().upper()
+            
+            if "SARON" in title:
+                # Suche nach dem strukturierten Wert
+                # Die SNB nutzt oft <cb:value> oder <cb:statistics><cb:value>
+                # Wir suchen einfach nach dem Tag 'value' (unabhängig vom Namespace)
+                value_tag = item.find('value') or item.find('cb:value')
                 
-                results.append((heute, "SARON", zins_val, "Referenzzins"))
-                break # Wir haben den SARON gefunden
-            except (ValueError, IndexError):
-                continue
+                if value_tag:
+                    zins_val = float(value_tag.get_text())
+                    print(f"SARON via XML-Tag gefunden: {zins_val}%")
+                    return [(heute, "SARON", zins_val, "Referenzzins")]
                 
-    return results
+                # Fallback: Falls der Tag nicht existiert, nutzen wir die Regex-Sicherung von vorhin
+                import re
+                match = re.search(r"(-?\d+\.\d+)", item.find('title').get_text())
+                if match:
+                    zins_val = float(match.group(1))
+                    return [(heute, "SARON", zins_val, "Referenzzins")]
+
+    except Exception as e:
+        print(f"Fehler beim XML-Parsing des SARON: {e}")
+        
+    return []
 
 if __name__ == "__main__":
     init_db()
