@@ -38,8 +38,10 @@ def send_email():
     # Diese Werte legst du in GitHub Secrets fest!
     from_email = os.environ.get("EMAIL_SENDER")
     to_email = os.environ.get("EMAIL_RECEIVER")
-    password = os.environ.get("EMAIL_PASSWORD") 
+    api_key = str(os.environ.get("EMAIL_PASSWORD", "")).strip() 
     smtp_server = "smtp.sendgrid.net" # Beispiel mit SendGrid
+    smtp_port = 587
+    username = "apikey"
 
     msg = MIMEMultipart()
     msg['From'] = from_email
@@ -53,9 +55,9 @@ def send_email():
         part.add_header("Content-Disposition", f"attachment; filename=zins_report.pdf")
         msg.attach(part)
 
-    server = smtplib.SMTP(smtp_server, 587)
+    server = smtplib.SMTP(smtp_server, smtp_port)
     server.starttls()
-    server.login(from_email, password)
+    server.login(username, api_key)
     server.send_message(msg)
     server.quit()
 
