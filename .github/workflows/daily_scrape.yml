@@ -25,8 +25,20 @@ jobs:
 
       - name: Commit and Push changes
         run: |
-          git config --global user.name "Scraper Bot"
-          git config --global user.email "bot@github.com"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # 1. Änderungen vormerken
           git add hypotheken.db
-          git commit -m "Daten-Update: $(date)" || echo "Keine Änderungen zum Committen"
-          git push
+
+          # 2. Nur weitermachen, wenn sich die DB wirklich geändert hat
+          git diff --quiet && git diff --staged --quiet || (
+            # 3. Den neuesten Stand vom Server holen und lokale Änderungen oben drauf setzen
+            git pull --rebase origin main
+            
+            # 4. Committen
+            git commit -m "Automatisches Zins-Update: $(date +'%Y-%m-%d')"
+            
+            # 5. Pushen (mit Retry-Logik)
+            git push origin main
+          )
