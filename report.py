@@ -11,7 +11,8 @@ from datetime import datetime
 
 def create_pdf():
     conn = sqlite3.connect('hypotheken.db')
-    df = pd.read_sql_query("SELECT * FROM zinsen ORDER BY datum DESC LIMIT 20", conn)
+    today_str = datetime.now().strftime('%Y-%m-%d')
+    df = pd.read_sql_query(f"SELECT * FROM zinsen WHERE datum = '{today_str}' ORDER BY laufzeit", conn)
     conn.close()
 
     pdf = FPDF()
@@ -29,7 +30,7 @@ def create_pdf():
     pdf.cell(60, 10, "Modell", 1, 0, 'C', True)
     pdf.cell(40, 10, "Zinssatz", 1, 1, 'C', True)
 
-    for i, row in df.head(15).iterrows():
+    for i, row in df.iterrows():
         pdf.cell(40, 10, str(row['datum']), 1)
         pdf.cell(60, 10, str(row['laufzeit']), 1)
         pdf.cell(40, 10, f"{row['zinssatz']}%", 1, 1)
