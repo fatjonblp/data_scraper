@@ -11,40 +11,71 @@ from email.mime.text import MIMEText
 from datetime import datetime
 
 def get_aktueller_saron():
-    conn = sqlite3.connect('hypotheken.db')
-    today_str = datetime.now().strftime('%Y-%m-%d')
-    df = pd.read_sql_query(f"SELECT * FROM zinsen WHERE datum = '{today_str}' AND laufzeit = 'SARON' ORDER BY zinssatz DESC LIMIT 1", conn)
-    conn.close()
-    return df['zinssatz'].values[0]
+    try:
+        conn = sqlite3.connect('hypotheken.db')
+        today_str = datetime.now().strftime('%Y-%m-%d')
+        df = pd.read_sql_query(f"SELECT zinssatz FROM zinsen WHERE datum = '{today_str}' AND laufzeit = 'SARON' LIMIT 1", conn)
+        conn.close()
+        return df['zinssatz'].values[0] if not df.empty else "N/A"
+    except:
+        return "N/A"
 
 def create_pdf():
     conn = sqlite3.connect('hypotheken.db')
     today_str = datetime.now().strftime('%Y-%m-%d')
-    df = pd.read_sql_query(f"SELECT * FROM zinsen WHERE datum = '{today_str}' ORDER BY laufzeit", conn)
+    # Wir holen alle Daten von heute
+    df = pd.read_sql_query(f"SELECT datum, laufzeit, zinssatz, typ FROM zinsen WHERE datum = '{today_str}'", conn)
     conn.close()
+
+    if df.empty:
+        print("Keine Daten für heute gefunden. PDF wird nicht erstellt.")
+        return
 
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Arial", 'B', 16)
-    pdf.cell(200, 10, txt="Wöchentlicher Hypotheken-Report", ln=True, align='C')
     
-    pdf.set_font("Arial", size=12)
+    # Header
+    pdf.set_font("Helvetica", 'B', 18)
+    pdf.set_text_color(40, 70, 120) # Dunkelblau
+    pdf.cell(0, 15, txt="Wöchentlicher Hypotheken-Report", ln=True, align='C')
+    
+    pdf.set_font("Helvetica", size=10)
+    pdf.set_text_color(100)
+    pdf.cell(0, 10, txt=f"Berichtsdatum: {datetime.now().strftime('%d.%m.%Y')}", ln=True, align='C')
     pdf.ln(10)
-    pdf.cell(200, 10, txt=f"Erstellt am: {pd.to_datetime('today').strftime('%d.%m.%Y')}", ln=True)
-    
-    # Einfache Tabelle im PDF
-    pdf.set_fill_color(200, 220, 255)
-    pdf.cell(40, 10, "Datum", 1, 0, 'C', True)
-    pdf.cell(60, 10, "Modell", 1, 0, 'C', True)
-    pdf.cell(40, 10, "Zinssatz", 1, 1, 'C', True)
-    pdf.cell(40, 10, "Typ", 1, 1, 'C', True)
 
-    for i, row in df.iterrows():
-        pdf.cell(40, 10, str(row['datum']), 1)
-        pdf.cell(60, 10, str(row['laufzeit']), 1)
-        pdf.cell(40, 10, f"{row['zinssatz']}%", 1, 1)
-        pdf.cell(40, 10, str(row['typ']), 1, 1)
+    # Tabellen-Einstellungen
+    # Gesamtbreite ca. 190mm
+    col_widths = [30, 70, 40, 50] 
+    headers = ["Datum", "Modell", "Zinssatz", "Typ"]
     
+    # Kopfzeile der Tabelle
+    pdf.set_font("Helvetica", 'B', 11)
+    pdf.set_fill_color(230, 230, 230) # Hellgrau
+    pdf.set_text_color(0)
+    
+    for i in range(len(headers)):
+        pdf.cell(col_widths[i], 10, headers[i], border=1, align='C', fill=True)
+    pdf.ln() # Zeilenumbruch nach Kopfzeile
+
+    # Datenzeilen
+    pdf.set_font("Helvetica", size=10)
+    for _, row in df.iterrows():
+        # Falls es der SARON ist, machen wir die Zeile fett oder färben sie ein
+        if "SARON" in str(row['laufzeit']).upper():
+            pdf.set_font("Helvetica", 'B', 10)
+            pdf.set_fill_color(240, 255, 240) # Ganz leichtes Grün
+            fill = True
+        else:
+            pdf.set_font("Helvetica", size=10)
+            fill = False
+
+        pdf.cell(col_widths[0], 10, str(row['datum']), border=1, align='C', fill=fill)
+        pdf.cell(col_widths[1], 10, str(row['laufzeit']), border=1, align='L', fill=fill)
+        pdf.cell(col_widths[2], 10, f"{row['zinssatz']:.2f}%", border=1, align='C', fill=fill)
+        pdf.cell(col_widths[3], 10, str(row['typ']), border=1, align='C', fill=fill)
+        pdf.ln()
+
     pdf.output("report.pdf")
 
 def send_email(aktueller_saron):
