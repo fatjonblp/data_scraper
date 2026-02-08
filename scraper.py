@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import sqlite3
+import feedparser
 from datetime import datetime
 
 def init_db():
@@ -57,11 +58,39 @@ def save_to_db(data):
     conn.commit()
     conn.close()
 
+def scrape_saron():
+    rss_url = "https://www.snb.ch/public/en/rss/interestRates"
+    feed = feedparser.parse(rss_url)
+    
+    results = []
+    heute = datetime.now().strftime('%Y-%m-%d')
+    
+    # Der RSS-Feed enthält verschiedene Zinssätze als "entries"
+    for entry in feed.entries:
+        title = entry.title.upper()
+        # Wir suchen gezielt nach dem Eintrag für den SARON
+        if "SARON" in title:
+            # Der Titel sieht meist so aus: "SARON: 1.05%"
+            try:
+                # Extrahiere den Zahlenwert aus dem Titel oder der Beschreibung
+                # Wir suchen nach dem Prozentzeichen und nehmen die Zahl davor
+                zins_raw = entry.title.split(':')[-1].replace('%', '').strip()
+                zins_val = float(zins_raw)
+                
+                results.append((heute, "SARON", zins_val, "Referenzzins"))
+                break # Wir haben den SARON gefunden
+            except (ValueError, IndexError):
+                continue
+                
+    return results
+
 if __name__ == "__main__":
     init_db()
-    daten = scrape_migros_bank()
-    if daten:
-        save_to_db(daten)
-        print(f"Erfolgreich {len(daten)} Zinssätze gespeichert.")
-    else:
-        print("Keine Daten extrahiert.")
+    
+    alle_daten = []
+    alle_daten.extend(scrape_migros_bank())
+    alle_daten.extend(scrape_saron())
+    
+    if alle_daten:
+        save_to_db(alle_daten)
+        print(f"{len(alle_daten)} Zinssätze (inkl. SARON) gespeichert.")
