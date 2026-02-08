@@ -17,20 +17,20 @@ def load_data():
     df = pd.read_sql_query("SELECT * FROM zinsen", conn)
     conn.close()
     df['datum'] = pd.to_datetime(df['datum'])
+    if not df.empty:
+        # Das Datum des aktuellsten Eintrags finden
+        letztes_update = df['datum'].max()
+        jetzt = datetime.now()
+        differenz = jetzt - letztes_update
+
+        # Warnung anzeigen, wenn Daten älter als 2 Tage (48h) sind
+        if differenz > timedelta(days=2):
+            st.error(f"⚠️ ACHTUNG: Die Daten sind veraltet! Letztes erfolgreiches Update: {letztes_update.strftime('%d.%m.%Y')}")
+            st.info("Bitte prüfe die GitHub Actions Logs, ob der Scraper einen Fehler hatte.")
+        else:
+            st.caption(f"✅ Datenstand: {letztes_update.strftime('%d.%m.%Y')} (Aktualisiert via GitHub Actions)")
     return df
 
-if not df.empty:
-    # Das Datum des aktuellsten Eintrags finden
-    letztes_update = df['datum'].max()
-    jetzt = datetime.now()
-    differenz = jetzt - letztes_update
-
-    # Warnung anzeigen, wenn Daten älter als 2 Tage (48h) sind
-    if differenz > timedelta(days=2):
-        st.error(f"⚠️ ACHTUNG: Die Daten sind veraltet! Letztes erfolgreiches Update: {letztes_update.strftime('%d.%m.%Y')}")
-        st.info("Bitte prüfe die GitHub Actions Logs, ob der Scraper einen Fehler hatte.")
-    else:
-        st.caption(f"✅ Datenstand: {letztes_update.strftime('%d.%m.%Y')} (Aktualisiert via GitHub Actions)")
 
 # Sidebar Erweiterung
 st.sidebar.markdown("---")
